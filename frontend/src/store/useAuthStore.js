@@ -1,113 +1,144 @@
 import { create } from "zustand";
 import { axiosInstance } from "../lib/axios";
 import toast from "react-hot-toast";
-import { useAuthStore } from "./useAuthStore";
+import { io } from "socket.io-client";
 
-export const useChatStore = create((set, get) => ({
-  allContacts: [],
-  chats: [],
-  messages: [],
-  activeTab: "chats",
-  selectedUser: null,
-  isUsersLoading: false,
-  isMessagesLoading: false,
-  isSoundEnabled: JSON.parse(localStorage.getItem("isSoundEnabled")) === true,
+/* ---------------- BACKEND URL ---------------- */
 
-  toggleSound: () => {
-    localStorage.setItem("isSoundEnabled", !get().isSoundEnabled);
-    set({ isSoundEnabled: !get().isSoundEnabled });
-  },
+const BASE_URL =
+  import.meta.env.MODE === "development"
+    ? "http://localhost:3000"
+    : "https://nexchat-tn4u.onrender.com";
 
-  setActiveTab: (tab) => set({ activeTab: tab }),
-  setSelectedUser: (selectedUser) => set({ selectedUser }),
+/* ---------------- STORE ---------------- */
 
-  getAllContacts: async () => {
-    set({ isUsersLoading: true });
+export const useAuthStore = create((set, get) => ({
+  authUser: null,
+  isCheckingAuth: true,
+  isSigningUp: false,
+  isLoggingIn: false,
+  socket: null,
+  onlineUsers: [],
+
+  /* ---------------- CHECK AUTH ---------------- */
+
+  checkAuth: async () => {
     try {
-      const res = await axiosInstance.get("/messages/contacts");
-      set({ allContacts: res.data });
+      const res = await axiosInstance.get("/auth/check");
+
+      set({ authUser: res.data });
+
+      get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      set({ authUser: null });
+      console.log("Auth check error:", error);
     } finally {
-      set({ isUsersLoading: false });
+      set({ isCheckingAuth: false });
     }
   },
-  getMyChatPartners: async () => {
-    set({ isUsersLoading: true });
+
+  /* ---------------- SIGNUP ---------------- */
+
+  signup: async (data) => {
+    set({ isSigningUp: true });
+
     try {
-      const res = await axiosInstance.get("/messages/chats");
-      set({ chats: res.data });
+      const res = await axiosInstance.post("/auth/signup", data);
+
+      set({ authUser: res.data });
+
+      toast.success("Account created successfully 🚀");
+
+      get().connectSocket();
     } catch (error) {
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Signup failed");
+      console.log(error);
     } finally {
-      set({ isUsersLoading: false });
+      set({ isSigningUp: false });
     }
   },
 
-  getMessagesByUserId: async (userId) => {
-    set({ isMessagesLoading: true });
+  /* ---------------- LOGIN ---------------- */
+
+  login: async (data) => {
+    set({ isLoggingIn: true });
+
     try {
-      const res = await axiosInstance.get(`/messages/${userId}`);
-      set({ messages: res.data });
+      const res = await axiosInstance.post("/auth/login", data);
+
+      set({ authUser: res.data });
+
+      toast.success("Logged in successfully 🚀");
+
+      get().connectSocket();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error(error.response?.data?.message || "Login failed");
+      console.log(error);
     } finally {
-      set({ isMessagesLoading: false });
+      set({ isLoggingIn: false });
     }
   },
 
-  sendMessage: async (messageData) => {
-    const { selectedUser, messages } = get();
-    const { authUser } = useAuthStore.getState();
+  /* ---------------- LOGOUT ---------------- */
 
-    const tempId = `temp-${Date.now()}`;
-
-    const optimisticMessage = {
-      _id: tempId,
-      senderId: authUser._id,
-      receiverId: selectedUser._id,
-      text: messageData.text,
-      image: messageData.image,
-      createdAt: new Date().toISOString(),
-      isOptimistic: true, // flag to identify optimistic messages (optional)
-    };
-    // immidetaly update the ui by adding the message
-    set({ messages: [...messages, optimisticMessage] });
-
+  logout: async () => {
     try {
-      const res = await axiosInstance.post(`/messages/send/${selectedUser._id}`, messageData);
-      set({ messages: messages.concat(res.data) });
+      await axiosInstance.post("/auth/logout");
+
+      set({ authUser: null });
+
+      toast.success("Logged out successfully");
+
+      get().disconnectSocket();
     } catch (error) {
-      // remove optimistic message on failure
-      set({ messages: messages });
-      toast.error(error.response?.data?.message || "Something went wrong");
+      toast.error("Logout failed");
+      console.log(error);
     }
   },
 
-  subscribeToMessages: () => {
-    const { selectedUser, isSoundEnabled } = get();
-    if (!selectedUser) return;
+  /* ---------------- UPDATE PROFILE ---------------- */
 
-    const socket = useAuthStore.getState().socket;
+  updateProfile: async (data) => {
+    try {
+      const res = await axiosInstance.put("/auth/update-profile", data);
 
-    socket.on("newMessage", (newMessage) => {
-      const isMessageSentFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if (!isMessageSentFromSelectedUser) return;
+      set({ authUser: res.data });
 
-      const currentMessages = get().messages;
-      set({ messages: [...currentMessages, newMessage] });
+      toast.success("Profile updated successfully");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Update failed");
+      console.log(error);
+    }
+  },
 
-      if (isSoundEnabled) {
-        const notificationSound = new Audio("/sounds/notification.mp3");
+  /* ---------------- SOCKET CONNECT ---------------- */
 
-        notificationSound.currentTime = 0; // reset to start
-        notificationSound.play().catch((e) => console.log("Audio play failed:", e));
-      }
+  connectSocket: () => {
+    const { authUser } = get();
+
+    if (!authUser || get().socket?.connected) return;
+
+    const socket = io(BASE_URL, {
+      withCredentials: true,
+    });
+
+    set({ socket });
+
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
+
+    socket.on("getOnlineUsers", (userIds) => {
+      set({ onlineUsers: userIds });
     });
   },
 
-  unsubscribeFromMessages: () => {
-    const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
+  /* ---------------- SOCKET DISCONNECT ---------------- */
+
+  disconnectSocket: () => {
+    if (get().socket) {
+      get().socket.disconnect();
+      set({ socket: null });
+    }
   },
 }));
