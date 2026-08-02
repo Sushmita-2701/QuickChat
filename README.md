@@ -9,17 +9,17 @@ QuickChat is a real-time messaging app where users can send messages instantly, 
 ## ✨ Features
 
 - ⚛️ **Frontend** built with React, Tailwind CSS & Hero UI
-- 🚀 **Backend** powered by Node.js & Express.js
-- 🔐 **Authentication** handled with Clerk
-- 🗄️ **MongoDB** database integration for storing users and messages
-- ⚡ **Real-time messaging** using Socket.io
+- 🔑 **Authentication** handled with Clerk
+- 📡 **Real-time messaging** using Socket.io
 - 🟢 **Online user presence tracking** — see who's active right now
-- 🖼️ **Image & video sharing** support in chats
-- 🎨 **Dark/Light mode** plus multiple themes and wallpapers
-- ⌨️ **Optional keyboard sound effects** for a fun typing experience
-- 🔌 **Custom WebSocket server** built from scratch (no Firebase/Supabase)
-- 📤 **Media uploads & transformations** using ImageKit
-- 🔔 **Webhooks, Cron Jobs & Middleware** used for background tasks and automation
+- 🍃 **MongoDB** database integration for storing users and messages
+- 🧩 **Backend** powered by Node.js & Express.js
+- 🎞️ **Image & video sharing** support in chats
+- 🌗 **Dark/Light mode** plus multiple themes and wallpapers
+- 🔊 **Optional keyboard sound effects** for a fun typing experience
+- 🛰️ **Custom WebSocket server** built from scratch (no Firebase/Supabase)
+- 📸 **Media uploads & transformations** using ImageKit
+- ⏰ **Webhooks, Cron Jobs & Middleware** used for background tasks and automation
 
 ## 🛠 Tech Stack
 
