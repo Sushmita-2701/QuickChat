@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 const BASE_URL =
   import.meta.env.MODE === "development"
     ? "http://localhost:3000"
-    : "https://nexchat-tn4u.onrender.com";
+    : "https://quickchatt-30e5.onrender.com";
 
 /* ---------------- STORE ---------------- */
 
