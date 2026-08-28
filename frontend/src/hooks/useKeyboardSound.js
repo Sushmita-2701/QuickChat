@@ -1,7 +1,25 @@
-import { io } from "socket.io-client";
+import { useRef } from "react";
 
-const socket = io(import.meta.env.VITE_API_URL, {
-  withCredentials: true,
-});
+const keySounds = [
+  "/sounds/keystroke1.mp3",
+  "/sounds/keystroke2.mp3",
+  "/sounds/keystroke3.mp3",
+  "/sounds/keystroke4.mp3",
+];
 
-export default socket;
+function useKeyboardSound() {
+  const audioRef = useRef(null);
+
+  const playRandomKeyStrokeSound = () => {
+    const randomSound = keySounds[Math.floor(Math.random() * keySounds.length)];
+    audioRef.current = new Audio(randomSound);
+    audioRef.current.currentTime = 0;
+    audioRef.current.play().catch((err) => {
+      console.warn("Could not play keystroke sound:", err);
+    });
+  };
+
+  return { playRandomKeyStrokeSound };
+}
+
+export default useKeyboardSound;
