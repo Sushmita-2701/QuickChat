@@ -28,7 +28,7 @@ app.use(cors({
 /* ---------------- HEALTH CHECK ROUTE ---------------- */
 
 app.get("/", (req, res) => {
-  res.send("Backend is running 🚀");
+  res.send("Backend is running fine!");
 });
 
 /* ---------------- API ROUTES ---------------- */
@@ -41,13 +41,13 @@ app.use("/api/messages", messageRoutes);
 const startServer = async () => {
   try {
     await connectDB();
-    console.log("MongoDB connected successfully ✅");
+    console.log("MongoDB connected successfully");
 
     server.listen(PORT, () => {
       console.log(`Server running on port: ${PORT}`);
     });
   } catch (error) {
-    console.error("DB Connection Failed ❌", error);
+    console.error("DB Connection Failed ", error);
   }
 };
 
